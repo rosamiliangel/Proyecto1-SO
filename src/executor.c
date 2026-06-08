@@ -2,11 +2,13 @@
 executor.c / executor.h: Interacción con el Kernel (resolución de la variable $PATH,
 llamadas a fork(), execvp(), waitpid() y redirección de descriptores)
 */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "../include/jobs.h"
 
 int search_in_path(const char *cmd, char *full_path) {
     //Complementario

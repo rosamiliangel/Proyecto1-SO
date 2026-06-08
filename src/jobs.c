@@ -39,7 +39,7 @@ void add_job(pid_t pid, const char* com) {
         strncpy(job_table[job_count].command, com, sizeof(job_table[job_count].command) -1);
 
         //Estado inicial por defecto
-        strncpy(job_table[job_count].status, "Running");
+        strcpy(job_table[job_count].status, "Running");
 
         job_count++;
 
