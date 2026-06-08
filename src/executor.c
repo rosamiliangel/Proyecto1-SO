@@ -50,7 +50,7 @@ int search_in_path(const char *cmd, char *full_path) {
     //Si ya recorrimos todo el PATH y no encontramos el comando, fin.
     return 0;}
 
-void la:unch_external_command(char **args, int in_background) {
+void launch_external_command(char **args, int in_background) {
     char ruta_comando[1024];
 
     //Verificar si el comando existe en el PATH
