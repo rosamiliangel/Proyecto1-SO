@@ -19,10 +19,15 @@ int parse_line(char *line, char **args) {
         token = strtok(NULL, " \t");
     }
     args[i] = NULL;
-    // REQUERIMIENTO SINTÁCTICO:
-    // args[0] será siempre el comando principal (ej: "gcc")
-    // args[1] ... args[n] serán los argumentos del comando
-    // args[n+1] DEBE ser NULL para que funciones como execvp sepan dónde termina el arreglo.
+    
+    //Bandera que determina la ejecucion
+    int in_background = 0;
+
+    //Revisamos si el ultimo argumento es '&'
+    if (i > 0 && strcmp(args[i - 1], "&") == 0) {
+        in_background = 1; // Activamos la bandera
+        args[i - 1] = NULL; // Eliminar el operador '&' de los argumentos
+    }
     
     // DETECCIÓN DE OPERADORES:
     // Durante el recorrido, si encuentras ';', '&&', '||' o '|', debes romper la estructura 

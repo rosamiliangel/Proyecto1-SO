@@ -44,7 +44,7 @@ int search_in_path(const char *cmd, char *full_path) {
             return 1;
         }
         //Siguiente directorio
-        directory = strtok(NULL, ":");
+        directory = strtok(NULL, ":"); //Falta provar si evita un ciclo infinito o arruina el codigo (:)
 ;    }
 
     //Si ya recorrimos todo el PATH y no encontramos el comando, fin.
@@ -85,20 +85,12 @@ void launch_external_command(char **args, int in_background) {
             // Aquí puedes evaluar las macros WIFEXITED(status) y WEXITSTATUS(status) 
             // para saber si el hijo terminó con código 0 o error, vital para los operadores && y ||[cite: 23, 24].
             
-        } /*else {
-            /* EJECUCIÓN ASÍNCRONA (Background) 
-            // No nos bloqueamos con wait. El enunciado pide retornar de inmediato el prompt[cite: 39].
-            // Almacenamos el PID y los datos en la tabla interna para que 'jobs' pueda vigilarlo[cite: 42, 45, 76].
-            job_table[job_count].pid = pid;
-            job_table[job_count].id = job_count + 1;
-            strcpy(job_table[job_count].command, args[0]);
-            strcpy(job_table[job_count].status, "Running");
-            job_count++;
-            
-            printf("[%d] %d registrado en segundo plano.\n", job_count, pid);
-        }*/
-    } /*else {
+        } else {
+            // EJECUCIÓN ASÍNCRONA (Background) 
+            add_job(pid, args[0]);
+        }
+    }else {
         // Si fork() retorna un valor negativo, el sistema operativo se quedó sin recursos para crear el proceso.
         perror("Error crítico en la llamada fork");
-    }*/
+    }
 }
