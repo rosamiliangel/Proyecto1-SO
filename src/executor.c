@@ -44,7 +44,7 @@ int search_in_path(const char *cmd, char *full_path) {
             return 1;
         }
         //Siguiente directorio
-        directory = strtok(NULL, "")
+        directory = strtok(NULL, ":");
 ;    }
 
     //Si ya recorrimos todo el PATH y no encontramos el comando, fin.
