@@ -19,36 +19,35 @@ int parse_line(char *line, char **args, int *in_background) {
     //Bandera que determina la ejecucion
     *in_background = 0; //Se inicializa en 0 para cada nueva lectura
 
-    char *token = strtok(line, " \t");
+    //Puntero estatico para almacenar la ubicación del operador en la cadena
+    static char *operador;
 
-    while (token != NULL && i < MAX_ARGS - 1) {
-        // 1. COMPROBACIÓN DE OPERADORES CONDICIONALES / SECUENCIALES
-        if (strcmp(token, ";") == 0) {
-            operador_detectado = OP_SECUENCIAL;
-            break; // Rompemos el ciclo: el comando termina AQUÍ
-        } 
-        else if (strcmp(token, "&&") == 0) {
-            operador_detectado = OP_AND;
-            break; // Rompemos el ciclo
-        } 
-        else if (strcmp(token, "||") == 0) {
-            operador_detectado = OP_OR;
-            break; // Rompemos el ciclo
-        }
+    //Pimer corte de la cadena
+    char *token = strtok_r(line, " \t\n\r", &operador);
 
+    while (token != NULL && i < MAX_ARGS -1) {
+        //Comprobación de operadores
+        if(strcmp(token, ";") == 0) {operador_detectado = OP_SECUENCIAL; break;}
+        if(strcmp(token, "&&") == 0) {operador_detectado = OP_AND; break;}
+        if(strcmp(token, "||") == 0) {operador_detectado = OP_OR; break;}
+        /* Se trata al & como un operador en casos borde de que el comando asincrono no sea
+        el unico comando o no este al final de varios comandos.
+        Revisar que el ultimo argumento es & -> ejecución asincrona.
+        if(i > 0 && strcmp(args[i - 1], "&") == 0) {*in_background = 1; args[i - 1] = NULL;}
+        se remplaza. */
+        if(strcmp(token, "&") == 0){*in_background = 1;operador_detectado = OP_SECUENCIAL; break;}
+
+        // Si la parte de la cadena evaluada no es operador se almacena en args
         args[i] = token;
         i++;
-        token = strtok(NULL, " \t");
+
+        // Se continua cortando la cadena
+        token = strtok_r(NULL, " \t\n\r", &operador);
     }
 
-    args[i] = NULL; //Esto es importante para usar pase_line varias veces en una cadena
-    
-    
-    //Revisamos si el ultimo argumento es '&'
-    if (i > 0 && strcmp(args[i - 1], "&") == 0) {
-        *in_background = 1; // Activamos la bandera //Cambio a * ya que ahora es puntero
-        args[i - 1] = NULL; // Eliminar el operador '&' de los argumentos
-    }
-    
+    //Asegurar que args termine en NULL (importante para usar parse_line repetidimente
+    //con una cadena)
+    args[i] = NULL;
+
     return operador_detectado; // cambio para conservar el operador
 }

@@ -62,11 +62,11 @@ int main() {
             // Sin operadores
             if (operador_detectado == OP_NINGUNO) {break;}
             // Operador ";". Se ejecuta el siguiente comando
-            if (operador_detectado == OP_SECUENCIAL) { continue; }
+            if (operador_detectado == OP_SECUENCIAL) {continue;}
             // Operador &&. Se ejecuta el siguiente comando si el anterior retorno 0 (exito)
-            if (operador_detectado == OP_AND && UltimoEstado != 0) { break; }
+            if (operador_detectado == OP_AND && UltimoEstado != 0) {break;}
             // Operador ||. Se ejecuta el siguiente comando si el anterior retorno 1)
-            if (operador_detectado == OP_OR && UltimoEstado == 0) { break; }
+            if (operador_detectado == OP_OR && UltimoEstado == 0) {break;}
 
         }
 
