@@ -2,11 +2,13 @@
 executor.c / executor.h: Interacción con el Kernel (resolución de la variable $PATH,
 llamadas a fork(), execvp(), waitpid() y redirección de descriptores)
 */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include "../include/jobs.h"
 
 int search_in_path(const char *cmd, char *full_path) {
     //Complementario
@@ -44,7 +46,7 @@ int search_in_path(const char *cmd, char *full_path) {
             return 1;
         }
         //Siguiente directorio
-        directory = strtok(NULL, "")
+        directory = strtok(NULL, ":"); //Falta provar si evita un ciclo infinito o arruina el codigo (:)
 ;    }
 
     //Si ya recorrimos todo el PATH y no encontramos el comando, fin.
@@ -56,15 +58,12 @@ void launch_external_command(char **args, int in_background) {
     //Verificar si el comando existe en el PATH
     if (!search_in_path(args[0], ruta_comando)) {
         return;
-    }
-    
+    } 
     // Una vez resuelta la ruta válida, procedemos a aislar la ejecución:
     pid_t pid = fork();
     if (pid < 0) {perror("Error al crear hilo");}
     
     if (pid == 0) {
-        
-        // MUTACIÓN DE MEMORIA:
         // execvp reemplaza por completo la imagen de memoria del proceso actual por el nuevo binario.
         // Si tiene éxito, esta línea NUNCA retorna; el código del hijo termina ahí.
         if (execvp(ruta_comando, args) == -1) {
@@ -72,33 +71,25 @@ void launch_external_command(char **args, int in_background) {
             exit(EXIT_FAILURE); // Si execvp falla (ej: comando no encontrado), forzar la muerte del hijo [cite: 34]
         }
     } else if (pid > 0) {
-        /* ------------------------------------------------------------------
-         * PROCESO PADRE
-         * ------------------------------------------------------------------
-         */
+        // ------ PROCESO PADRE ------
         if (!in_background) {
             // Bloqueamos temporalmente la shell cediendo el control de la terminal al hijo[cite: 35, 36].
             int status;
             // waitpid detiene al padre de forma segura hasta que el PID del hijo específico notifique su estado[cite: 36].
             waitpid(pid, &status, 0);
-            
-            // Aquí puedes evaluar las macros WIFEXITED(status) y WEXITSTATUS(status) 
-            // para saber si el hijo terminó con código 0 o error, vital para los operadores && y ||[cite: 23, 24].
-            
-        } /*else {
-            /* EJECUCIÓN ASÍNCRONA (Background) 
-            // No nos bloqueamos con wait. El enunciado pide retornar de inmediato el prompt[cite: 39].
-            // Almacenamos el PID y los datos en la tabla interna para que 'jobs' pueda vigilarlo[cite: 42, 45, 76].
-            job_table[job_count].pid = pid;
-            job_table[job_count].id = job_count + 1;
-            strcpy(job_table[job_count].command, args[0]);
-            strcpy(job_table[job_count].status, "Running");
-            job_count++;
-            
-            printf("[%d] %d registrado en segundo plano.\n", job_count, pid);
-        }*/
-    } /*else {
+
+            if (WIFEXITED(status)) {
+                return WEXITSTATUS(status); // Retorna el código de salida real
+            }
+        return -1;
+                 
+        } else {
+            // EJECUCIÓN ASÍNCRONA (Background) 
+            add_job(pid, args[0]);
+        }
+    }else {
         // Si fork() retorna un valor negativo, el sistema operativo se quedó sin recursos para crear el proceso.
         perror("Error crítico en la llamada fork");
-    }*/
+    }
+    return -1;
 }
