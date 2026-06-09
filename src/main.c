@@ -40,7 +40,10 @@ int main() {
 
         int background_flag = parse_line(linea, args);
 
-        launch_external_command(args, background_flag);
+        int status = launch_external_command(args, background_flag);
+        if (status == 0) {
+            launch_external_command(args, background_flag);
+        }
 
         if (strcmp(args[0], "jobs") == 0) {list_jobs(); continue;}
 

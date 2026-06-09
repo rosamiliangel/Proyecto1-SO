@@ -58,15 +58,12 @@ void launch_external_command(char **args, int in_background) {
     //Verificar si el comando existe en el PATH
     if (!search_in_path(args[0], ruta_comando)) {
         return;
-    }
-    
+    } 
     // Una vez resuelta la ruta válida, procedemos a aislar la ejecución:
     pid_t pid = fork();
     if (pid < 0) {perror("Error al crear hilo");}
     
     if (pid == 0) {
-        
-        // MUTACIÓN DE MEMORIA:
         // execvp reemplaza por completo la imagen de memoria del proceso actual por el nuevo binario.
         // Si tiene éxito, esta línea NUNCA retorna; el código del hijo termina ahí.
         if (execvp(ruta_comando, args) == -1) {
@@ -74,19 +71,18 @@ void launch_external_command(char **args, int in_background) {
             exit(EXIT_FAILURE); // Si execvp falla (ej: comando no encontrado), forzar la muerte del hijo [cite: 34]
         }
     } else if (pid > 0) {
-        /* ------------------------------------------------------------------
-         * PROCESO PADRE
-         * ------------------------------------------------------------------
-         */
+        // ------ PROCESO PADRE ------
         if (!in_background) {
             // Bloqueamos temporalmente la shell cediendo el control de la terminal al hijo[cite: 35, 36].
             int status;
             // waitpid detiene al padre de forma segura hasta que el PID del hijo específico notifique su estado[cite: 36].
             waitpid(pid, &status, 0);
-            
-            // Aquí puedes evaluar las macros WIFEXITED(status) y WEXITSTATUS(status) 
-            // para saber si el hijo terminó con código 0 o error, vital para los operadores && y ||[cite: 23, 24].
-            
+
+            if (WIFEXITED(status)) {
+                return WEXITSTATUS(status); // Retorna el código de salida real
+            }
+        return -1;
+                 
         } else {
             // EJECUCIÓN ASÍNCRONA (Background) 
             add_job(pid, args[0]);
@@ -95,4 +91,5 @@ void launch_external_command(char **args, int in_background) {
         // Si fork() retorna un valor negativo, el sistema operativo se quedó sin recursos para crear el proceso.
         perror("Error crítico en la llamada fork");
     }
+    return -1;
 }
