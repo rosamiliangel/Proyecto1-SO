@@ -47,30 +47,36 @@ int search_in_path(const char *cmd, char *full_path) {
         }
         //Siguiente directorio
         directory = strtok(NULL, ":"); //Falta provar si evita un ciclo infinito o arruina el codigo (:)
-;    }
+    }
 
     //Si ya recorrimos todo el PATH y no encontramos el comando, fin.
-    return 0;}
+    return 0;
+}
 
-void launch_external_command(char **args, int in_background) {
+//Arreglo de la } de la función search_in_path() y un ; de sobra en la linea 50
+
+//Cambio de void a int en launch_external_command() para poder capturar valor en main
+int launch_external_command(char **args, int in_background) {
     char ruta_comando[1024];
 
     //Verificar si el comando existe en el PATH
     if (!search_in_path(args[0], ruta_comando)) {
-        return;
+        return -1; //Cambio ahora que es tipo int
     } 
     // Una vez resuelta la ruta válida, procedemos a aislar la ejecución:
     pid_t pid = fork();
-    if (pid < 0) {perror("Error al crear hilo");}
+    if (pid < 0) {perror("Error al crear hilo"); return -1;} //salir si fork falla
     
     if (pid == 0) {
         // execvp reemplaza por completo la imagen de memoria del proceso actual por el nuevo binario.
         // Si tiene éxito, esta línea NUNCA retorna; el código del hijo termina ahí.
+        //Proceso hijo
         if (execvp(ruta_comando, args) == -1) {
             perror("ucvsh error de ejecucion");
             exit(EXIT_FAILURE); // Si execvp falla (ej: comando no encontrado), forzar la muerte del hijo [cite: 34]
         }
-    } else if (pid > 0) {
+    } else {
+        // Se elimino el if (pid > 0) porque a este punto pid siempre es > 0
         // ------ PROCESO PADRE ------
         if (!in_background) {
             // Bloqueamos temporalmente la shell cediendo el control de la terminal al hijo[cite: 35, 36].
@@ -87,9 +93,6 @@ void launch_external_command(char **args, int in_background) {
             // EJECUCIÓN ASÍNCRONA (Background) 
             add_job(pid, args[0]);
         }
-    }else {
-        // Si fork() retorna un valor negativo, el sistema operativo se quedó sin recursos para crear el proceso.
-        perror("Error crítico en la llamada fork");
-    }
+    } // Se elimino el perror, solo hay 3 casos posibles de fork y el error es el primero
     return -1;
 }

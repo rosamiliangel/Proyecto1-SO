@@ -6,6 +6,7 @@ detección de operadores y pipes)
 #ifndef parser_h
 #define parser_h
 
-int parse_line(char *line, char **args);
+//Se agrego el nuevo parametro para invocar la funcion varias veces en una linea
+int parse_line(char *line, char **args,  int *in_background);
 
 #endif // parser_h

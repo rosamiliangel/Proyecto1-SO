@@ -12,10 +12,13 @@ detección de operadores y pipes)
 #define OP_AND 2
 #define OP_OR 3
 
-int parse_line(char *line, char **args) {
+int parse_line(char *line, char **args, int *in_background) {
     int i = 0;
     int operador_detectado = OP_NINGUNO; // Ninguno por defecto
-    
+
+    //Bandera que determina la ejecucion
+    *in_background = 0; //Se inicializa en 0 para cada nueva lectura
+
     char *token = strtok(line, " \t");
 
     while (token != NULL && i < MAX_ARGS - 1) {
@@ -37,16 +40,15 @@ int parse_line(char *line, char **args) {
         i++;
         token = strtok(NULL, " \t");
     }
-    args[i] = NULL;
-    
-    //Bandera que determina la ejecucion
-    int in_background = 0;
 
+    args[i] = NULL; //Esto es importante para usar pase_line varias veces en una cadena
+    
+    
     //Revisamos si el ultimo argumento es '&'
     if (i > 0 && strcmp(args[i - 1], "&") == 0) {
-        in_background = 1; // Activamos la bandera
+        *in_background = 1; // Activamos la bandera //Cambio a * ya que ahora es puntero
         args[i - 1] = NULL; // Eliminar el operador '&' de los argumentos
     }
     
-    return 0; // Cambiar según si se detectó ejecución asíncrona '&'
+    return operador_detectado; // cambio para conservar el operador
 }
