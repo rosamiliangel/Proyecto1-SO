@@ -127,6 +127,8 @@ int launch_external_command(char **args, int in_background) {
         } else {
             // EJECUCIÓN ASÍNCRONA (Background) 
             add_job(pid, args[0]);
+            printf("[%d] %d lanzado en segundo plano\n", job_count, pid);
+            return 0;
         }
     } // Se elimino el perror, solo hay 3 casos posibles de fork y el error es el primero
     return -1;

@@ -34,6 +34,46 @@ int RevisarBuiltIn(char **args, int *UltimoEstado){
         return 1;
 
     }
+
+    // Caso fg: Traer un trabajo de background al primer plano
+    if (strcmp(args[0], "fg") == 0) {
+        if (args[1] == NULL) {
+            fprintf(stderr, "ucvsh: fg requiere el ID del trabajo (ej: fg 1)\n");
+            *UltimoEstado = 1;
+            return 1;
+        }
+
+        int target_id = atoi(args[1]);
+        int encontrado = 0;
+
+        for (int i = 0; i < job_count; i++) {
+            // Buscamos el ID que coincida y que siga corriendo
+            if (job_table[i].id == target_id && strcmp(job_table[i].status, "Running") == 0) {
+                encontrado = 1;
+                printf("Trayendo a primer plano: %s (PID: %d)\n", job_table[i].command, job_table[i].pid);
+                
+                // Nos bloqueamos síncronamente hasta que el hijo termine de verdad
+                int status;
+                waitpid(job_table[i].pid, &status, 0);
+                
+                // Actualizamos su estado en la tabla interna
+                strcpy(job_table[i].status, "Done");
+                
+                if (WIFEXITED(status)) {
+                    *UltimoEstado = WEXITSTATUS(status);
+                } else {
+                    *UltimoEstado = -1;
+                }
+                break;
+            }
+        }
+
+        if (!encontrado) {
+            fprintf(stderr, "ucvsh: fg: trabajo [%d] no encontrado o ya finalizó\n", target_id);
+            *UltimoEstado = 1;
+        }
+        return 1;
+    }
     
     return 0; //Se retona indicando que no era un BuiltIn
     
