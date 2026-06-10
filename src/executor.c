@@ -8,16 +8,14 @@ llamadas a fork(), execvp(), waitpid() y redirección de descriptores)
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include "../include/jobs.h"
 
 int search_in_path(const char *cmd, char *full_path) {
-    //Complementario
+    //Complementario. return 1 si encunetra el comando, return 0 si no lo encuentra
     if (cmd[0] == '/' || cmd[0] == '.') {
         // Si el comando ya es una ruta absoluta o relativa, verificamos
-        if (access(cmd, X_OK) == 0) {
-            strcpy(full_path, cmd);
-            return 1; // Comando encontrado
-        }
+        if (access(cmd, X_OK) == 0) {strcpy(full_path, cmd); return 1;}
         return 0; // Comando no encontrado
     }
 
@@ -25,16 +23,18 @@ int search_in_path(const char *cmd, char *full_path) {
     char *path_env = getenv("PATH");
     //El enunciado dice que de manera implicita el shell debe tener cargado como valor por
     //defecto las rutas normales y estandares de Linux
-    if (path_env == NULL) {
-        return -1; //No puede ser esto, hay que poner el estandar
-    }
+    //No puede ser Null, return -1 (No puede ser esto, hay que poner el estandar)
+    if (path_env == NULL) {return -1;}
 
     //Clonamos la cadena de PATH para no modificar la original con strtok
     char path_local[1024];
     strncpy(path_local, path_env, sizeof(path_local) - 1);
 
+    //Puntero para operadores
+    char *separador;
+
     //Separar los directorios usando el delimitador ':'
-    char *directory = strtok(path_local, ":");
+    char *directory = strtok_r(path_local, ":", &separador);
     while (directory != NULL) {
         char ruta_alterna[1024];
         //Concatenar el directorio con el comando
@@ -46,7 +46,7 @@ int search_in_path(const char *cmd, char *full_path) {
             return 1;
         }
         //Siguiente directorio
-        directory = strtok(NULL, ":"); //Falta provar si evita un ciclo infinito o arruina el codigo (:)
+        directory = strtok_r(NULL, ":", &separador); //Falta provar si evita un ciclo infinito o arruina el codigo (:)
     }
 
     //Si ya recorrimos todo el PATH y no encontramos el comando, fin.
@@ -130,7 +130,7 @@ void ejecutar_pipe(char **args_izq, char **args_der) {
 
         // Buscamos la ruta ejecutable
         char ruta[1024];
-        if (buscar_en_path(args_izq[0], ruta)) {
+        if (search_in_path(args_izq[0], ruta)) {
             execv(ruta, args_izq);
         }
         perror("ucvsh: error en comando izquierdo");
@@ -148,7 +148,7 @@ void ejecutar_pipe(char **args_izq, char **args_der) {
         close(fd[0]);
 
         char ruta[1024];
-        if (buscar_en_path(args_der[0], ruta)) {
+        if (search_in_path(args_der[0], ruta)) {
             execv(ruta, args_der);
         }
         perror("ucvsh: error en comando derecho");

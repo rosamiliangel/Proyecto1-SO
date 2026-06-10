@@ -4,7 +4,7 @@ listar procesos asíncronos en segundo plano
 */
 
 #ifndef jobs_h
-#define jobd_h
+#define jobs_h
 
 void add_job(pid_t pid, const char* com);
 
