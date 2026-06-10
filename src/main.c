@@ -37,6 +37,29 @@ int main() {
         //Caso de cadena vacia
         if(strlen(linea) == 0){continue;}
 
+        if (strchr(linea, '|') != NULL) {
+            // Si la línea tiene un pipe, extraemos los comandos izquierdo y derecho
+            char *args_izq[MAX_ARGS];
+            char *args_der[MAX_ARGS];
+            
+            // Se pica la línea en dos partes usando el '|' como delimitador
+            char *parte_izq = strtok(linea, "|");
+            char *parte_der = strtok(NULL, ""); // El resto de la línea
+            
+            if (parte_izq != NULL && parte_der != NULL) {
+                // Parseamos cada trozo de manera independiente usando el parse_line
+                int bg_izq = parse_line(parte_izq, args_izq, &operador_detectado);
+                int bg_der = parse_line(parte_der, args_der, &operador_detectado);
+                
+                if (args_izq[0] != NULL && args_der[0] != NULL) {
+                    // Invocamos a la función de tuberías que se agrego
+                    ejecutar_pipe(args_izq, args_der);
+                }
+            }
+            // Saltamos el resto del bucle para volver a pedir otro prompt ucvsh>
+            continue; 
+        }
+
         char *PunteroLinea = linea; //Puntero para rastrear cortes a linea
         int UltimoEstado = 0; //Almacena el estado de la ultima ejecucion/hijo
         int operador_detectado = OP_NINGUNO; //Almacenar operador

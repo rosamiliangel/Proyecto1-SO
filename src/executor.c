@@ -96,3 +96,63 @@ int launch_external_command(char **args, int in_background) {
     } // Se elimino el perror, solo hay 3 casos posibles de fork y el error es el primero
     return -1;
 }
+
+//Ejecuta dos comandos interconectados por una tubería (cmd1 | cmd2)
+void ejecutar_pipe(char **args_izq, char **args_der) {
+    int fd[2];
+    pid_t pid1, pid2;
+
+    // Crear la tubería en el Kernel
+    if (pipe(fd) < 0) {
+        perror("ucvsh: error al crear el pipe");
+        return;
+    }
+
+    // Primer Fork: Crear el Hijo Izquierdo
+    pid1 = fork();
+    if (pid1 == 0) {
+        // Redirigir la Salida Estándar al extremo de escritura del pipe
+        dup2(fd[1], STDOUT_FILENO);
+        
+        //El hijo izquierdo no lee del tubo, cierra lectura
+        close(fd[0]);
+        // Cerramos el descriptor original ya duplicado
+        close(fd[1]);
+
+        // Buscamos la ruta ejecutable
+        char ruta[1024];
+        if (buscar_en_path(args_izq[0], ruta)) {
+            execv(ruta, args_izq);
+        }
+        perror("ucvsh: error en comando izquierdo");
+        exit(EXIT_FAILURE);
+    }
+
+    // Segundo Fork: Crear el Hijo Derecho
+    pid2 = fork();
+    if (pid2 == 0) {
+        // Redirigir la Entrada Estándar al extremo de lectura del pipe
+        dup2(fd[0], STDIN_FILENO);
+        
+        // El hijo derecho no escribe en el tubo, cierra escritura
+        close(fd[1]);
+        close(fd[0]);
+
+        char ruta[1024];
+        if (buscar_en_path(args_der[0], ruta)) {
+            execv(ruta, args_der);
+        }
+        perror("ucvsh: error en comando derecho");
+        exit(EXIT_FAILURE);
+    }
+
+    // El padre no lee ni escribe en este tubo. Si no cierra AMBOS 
+    // descriptores aquí, los hijos se quedarán colgados esperando eternamente.
+    close(fd[0]);
+    close(fd[1]);
+
+    // Esperamos de forma síncrona a que ambos hijos terminen su labor
+    int status;
+    waitpid(pid1, &status, 0);
+    waitpid(pid2, &status, 0);
+}
