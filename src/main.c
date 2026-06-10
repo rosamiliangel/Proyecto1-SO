@@ -10,6 +10,7 @@
 #include "../include/jobs.h"
 #include "../include/builtins.h"
 #include "../include/executor.h"
+#include "../include/history.h"
 
 
 #define MAX_LINE_LEN 1024  // Longitud máxima de una línea de comandos leída del usuario [cite: 9]
@@ -42,6 +43,9 @@ int main() {
     char linea[MAX_LINE_LEN];
     char *args[MAX_ARGS];
 
+    // Cargar .ucvshHistorial a HistorialMem (memoria)
+    Historial();
+
     //Ciclo REPL (Read-Evaluate-Print-Loop)
     while(1) {
 
@@ -53,7 +57,9 @@ int main() {
         //Prompt inicial y limpieza del buffer para asegurar visibilidad del prompt
         printf("ucvsh> ");
         fflush(stdout);
-         
+        /*
+        //Anterior lectura de la entrada
+
         if (fgets(linea, sizeof(linea), stdin) == NULL) {break;}
 
         //Limpiar salto de linea de fgets
@@ -61,8 +67,14 @@ int main() {
 
         //Caso de cadena vacia
         if(strlen(linea) == 0){continue;}
+        */
 
-        if (strchr(linea, '|') != NULL) {
+        //Lectura con historial
+        //Si retorna 0 la entrada es vacia (\n)
+        if (LeerLinea(linea, sizeof(linea)) == 0) {continue;}
+
+        //Se agrego strstr(linea, "||") == NULL para que en revisar operadores || no pase por |
+        if (strchr(linea, '|') != NULL && strstr(linea, "||") == NULL) {
             // Si la línea tiene un pipe, extraemos los comandos izquierdo y derecho
             char *args_izq[MAX_ARGS];
             char *args_der[MAX_ARGS];
@@ -124,5 +136,5 @@ int main() {
     }
 
     return 0;
-
+    
 }
