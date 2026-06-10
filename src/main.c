@@ -5,6 +5,7 @@
 #include <sys/types.h> 
 #include <sys/wait.h> 
 #include <termios.h>
+#include <signal.h>
 #include "../include/parser.h"
 #include "../include/jobs.h"
 #include "../include/builtins.h"
@@ -20,7 +21,24 @@
 #define OP_AND 2
 #define OP_OR 3
 
+void signal_handler(int sig) {
+    // Manejar señales como SIGINT (Ctrl+C) para no cerrar la shell
+    if (sig == SIGINT) {
+        printf("\nucvsh> ");
+        fflush(stdout);
+    }
+    // Manejar SIGTSTP (Ctrl+Z) para suspender el proceso en primer plano
+    if (sig == SIGTSTP) {
+        printf("\nucvsh> ");
+        fflush(stdout);
+    }
+}
+
 int main() {
+    // Configurar el manejador de señales para SIGINT
+    signal(SIGINT, signal_handler);
+    signal(SIGTSTP, signal_handler);
+
     char linea[MAX_LINE_LEN];
     char *args[MAX_ARGS];
 

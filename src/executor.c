@@ -68,6 +68,10 @@ int launch_external_command(char **args, int in_background) {
     if (pid < 0) {perror("Error al crear hilo"); return -1;} //salir si fork falla
     
     if (pid == 0) {
+        // Proceso hijo
+        signal(SIGINT, SIG_DFL); //Restaurar el comportamiento por defecto de Ctrl+C en el hijo
+        signal(SIGTSTP, SIG_DFL); //Restaurar el comportamiento por defecto de Ctrl+Z en el hijo
+
         // execvp reemplaza por completo la imagen de memoria del proceso actual por el nuevo binario.
         // Si tiene éxito, esta línea NUNCA retorna; el código del hijo termina ahí.
         //Proceso hijo
@@ -79,10 +83,15 @@ int launch_external_command(char **args, int in_background) {
         // Se elimino el if (pid > 0) porque a este punto pid siempre es > 0
         // ------ PROCESO PADRE ------
         if (!in_background) {
+            //Antes del bloqueo
+            signal(SIGINT, SIG_IGN); //Ignorar Ctrl+C en el padre mientras espera al hijo
             // Bloqueamos temporalmente la shell cediendo el control de la terminal al hijo[cite: 35, 36].
             int status;
             // waitpid detiene al padre de forma segura hasta que el PID del hijo específico notifique su estado[cite: 36].
             waitpid(pid, &status, 0);
+
+            // Restaurar el comportamiento por defecto de Ctrl+C en el padre
+            signal(SIGINT, SIG_DFL);
 
             if (WIFEXITED(status)) {
                 return WEXITSTATUS(status); // Retorna el código de salida real
