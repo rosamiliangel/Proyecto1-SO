@@ -22,3 +22,4 @@ $(ObjDir)/%.o : $(SrcDir)/%.c
 clean:
 	rm -rf $(Target)
 	rm -rf $(ObjDir)/*.o
+
