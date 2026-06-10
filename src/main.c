@@ -43,6 +43,9 @@ int main() {
     char linea[MAX_LINE_LEN];
     char *args[MAX_ARGS];
 
+    // Cargar .ucvshHistorial a HistorialMem (memoria)
+    Historial();
+
     //Ciclo REPL (Read-Evaluate-Print-Loop)
     while(1) {
 
@@ -70,7 +73,8 @@ int main() {
         //Si retorna 0 la entrada es vacia (\n)
         if (LeerLinea(linea, sizeof(linea)) == 0) {continue;}
 
-        if (strchr(linea, '|') != NULL) {
+        //Se agrego strstr(linea, "||") == NULL para que en revisar operadores || no pase por |
+        if (strchr(linea, '|') != NULL && strstr(linea, "||") == NULL) {
             // Si la línea tiene un pipe, extraemos los comandos izquierdo y derecho
             char *args_izq[MAX_ARGS];
             char *args_der[MAX_ARGS];
