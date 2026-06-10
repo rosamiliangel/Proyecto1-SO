@@ -2,7 +2,8 @@
 parser.c / parser.h: Manipulación de cadenas de texto (parse line, tokenización,
 detección de operadores y pipes)
 */
-
+#define _GNU_SOURCE
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 

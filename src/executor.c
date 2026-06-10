@@ -9,6 +9,7 @@ llamadas a fork(), execvp(), waitpid() y redirección de descriptores)
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <fcntl.h>
 #include "../include/jobs.h"
 
 int search_in_path(const char *cmd, char *full_path) {
@@ -53,7 +54,30 @@ int search_in_path(const char *cmd, char *full_path) {
     return 0;
 }
 
-//Arreglo de la } de la función search_in_path() y un ; de sobra en la linea 50
+// Revisa si en los argumentos viene un '>' para redirigir
+void redireccion(char **args) {
+    for (int i = 0; args[i] != NULL; i++) {
+        if (strcmp(args[i], ">") == 0) {
+            // El nombre del archivo es el siguiente argumento
+            char *archivo = args[i + 1];
+
+            // Abrimos el archivo: Escritura, Crear si no existe, Truncar si ya existe
+            int fd = open(archivo, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd < 0) {
+                perror("ucvsh: error al abrir archivo de redirección");
+                exit(EXIT_FAILURE);
+            }
+
+            // Clonamos el descriptor sobre la salida estándar (stdout)
+            dup2(fd, STDOUT_FILENO);
+            close(fd); // Cerramos el descriptor original
+
+            // Limpiamos el '>' y el nombre del archivo de los argumentos para que execv no intente leerlos de forma literal
+            args[i] = NULL;
+            break; 
+        }
+    }
+}
 
 //Cambio de void a int en launch_external_command() para poder capturar valor en main
 int launch_external_command(char **args, int in_background) {
@@ -72,6 +96,8 @@ int launch_external_command(char **args, int in_background) {
         signal(SIGINT, SIG_DFL); //Restaurar el comportamiento por defecto de Ctrl+C en el hijo
         signal(SIGTSTP, SIG_DFL); //Restaurar el comportamiento por defecto de Ctrl+Z en el hijo
 
+        // Redirección de salida si es necesario
+        redireccion(args);
         // execvp reemplaza por completo la imagen de memoria del proceso actual por el nuevo binario.
         // Si tiene éxito, esta línea NUNCA retorna; el código del hijo termina ahí.
         //Proceso hijo
@@ -146,6 +172,9 @@ void ejecutar_pipe(char **args_izq, char **args_der) {
         // El hijo derecho no escribe en el tubo, cierra escritura
         close(fd[1]);
         close(fd[0]);
+
+        // Redirección de salida si es necesario
+        redireccion(args_der);
 
         char ruta[1024];
         if (search_in_path(args_der[0], ruta)) {
