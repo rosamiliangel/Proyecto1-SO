@@ -48,6 +48,8 @@ int main() {
 
     //Ciclo REPL (Read-Evaluate-Print-Loop)
     while(1) {
+        //Limpieza de zombies
+        check_jobs();
 
         //Variables
         char *PunteroLinea = linea; //Puntero para rastrear cortes a linea

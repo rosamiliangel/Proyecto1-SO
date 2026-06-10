@@ -46,6 +46,23 @@ void add_job(pid_t pid, const char* com) {
     }
 }
 
+void check_jobs() {
+    int status;
+    for (int i = 0; i < job_count; i++) {
+        if (strcmp(job_table[i].status, "Running") == 0) {
+            // Verificar si el proceso ha terminado
+            pid_t result = waitpid(job_table[i].pid, &status, WNOHANG);
+            if (result == -1) {
+                // Error al esperar el proceso
+                perror("waitpid");
+            } else if (result == job_table[i].pid) {
+                // El proceso ha terminado
+                strcpy(job_table[i].status, "Done");
+            }
+        }
+    }
+}
+
 void list_jobs() {
     for (int i = 0; i < job_count; i++) {
         // Imprimir el ID, PID, comando y estado de cada job
