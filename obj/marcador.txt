@@ -1,1 +1,0 @@
-//Este archivo se asegura de que la carpeta obj donde se crearan los .o se cree en el git
