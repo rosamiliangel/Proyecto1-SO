@@ -10,19 +10,12 @@ listar procesos asíncronos en segundo plano
 #include <sys/types.h> 
 #include <sys/wait.h> 
 #include <termios.h>
+#include "../include/jobs.h"
 
 #define MAX_LINE_LEN 1024
-#define MAX_ARGS 64    
+#define MAX_ARGS 64
 
-typedef struct {
-    pid_t pid;                 // Identificador único del proceso asignado por el Kernel de Linux
-    int id;                    // Identificador secuencial interno de la shell para el usuario
-    char command[MAX_LINE_LEN];// Almacena la cadena de texto original que lanzó el proceso
-    char status[20];           // Estado actual del trabajo: "Running", "Suspended", "Done"
-} Job;
-
-// Tabla global de trabajos. En una shell madura podría ser una lista enlazada, 
-// pero un arreglo dinámico o estático grande cumple perfectamente con el requerimiento[cite: 44].
+//Variables globales
 Job job_table[100];
 int job_count = 0;
 
@@ -42,7 +35,6 @@ void add_job(pid_t pid, const char* com) {
         strcpy(job_table[job_count].status, "Running");
 
         job_count++;
-
     }
 }
 
