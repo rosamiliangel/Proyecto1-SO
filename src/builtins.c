@@ -3,36 +3,30 @@ builtins.c / builtins.h: Funciones aisladas para los built-ins (cd, exit y lectu
 del historial)
 */
 
-//Librerias completas de forma provisional
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> 
-#include <sys/types.h> 
-#include <sys/wait.h> 
-#include <termios.h>
-#include "../include/parser.h"
+#include <sys/wait.h>
 #include "../include/jobs.h"
 #include "../include/builtins.h"
-#include "../include/executor.h"
 
+//Revisar si el comando es un Builtin
 int RevisarBuiltIn(char **args, int *UltimoEstado){
 
-    if (strcmp(args[0], "exit") == 0) {exit(0);} //Salir de la Shell
+    if (strcmp(args[0], "exit") == 0) {exit(0);} //Salir de la shell
     
     //Listar jobs, actualizar estado y avisar que si es un BultIn
     if (strcmp(args[0], "jobs") == 0) {list_jobs(); *UltimoEstado = 0; return 1;}
 
-    //Caso cd meramente por el caso de ejemplo en el pdf
+    //Ejecuta el BultIn cd
     if (strcmp(args[0], "cd") == 0) {
-
         // cd manda a home
         if (args[1] == NULL) {chdir(getenv("HOME"));} else {if (chdir(args[1]) != 0) {perror("ucvsh: cd");}}
         
         *UltimoEstado = 0; 
         
         return 1;
-
     }
 
     // Caso fg: Traer un trabajo de background al primer plano
@@ -47,34 +41,33 @@ int RevisarBuiltIn(char **args, int *UltimoEstado){
         int encontrado = 0;
 
         for (int i = 0; i < job_count; i++) {
-            // Buscamos el ID que coincida y que siga corriendo
+            // Buscar el ID que coincida y que siga corriendo
             if (job_table[i].id == target_id && strcmp(job_table[i].status, "Running") == 0) {
                 encontrado = 1;
                 printf("Trayendo a primer plano: %s (PID: %d)\n", job_table[i].command, job_table[i].pid);
                 
-                // Nos bloqueamos síncronamente hasta que el hijo termine de verdad
+                // Bloquear síncronamente hasta que el hijo termine de verdad
                 int status;
                 waitpid(job_table[i].pid, &status, 0);
                 
-                // Actualizamos su estado en la tabla interna
+                // Actualizar estado en la tabla interna
                 strcpy(job_table[i].status, "Done");
                 
-                if (WIFEXITED(status)) {
-                    *UltimoEstado = WEXITSTATUS(status);
-                } else {
-                    *UltimoEstado = -1;
-                }
+                if (WIFEXITED(status)) {*UltimoEstado = WEXITSTATUS(status);} else {*UltimoEstado = -1;}
+
                 break;
             }
         }
 
+        //Imprimir si no se encuentra el trabajo
         if (!encontrado) {
             fprintf(stderr, "ucvsh: fg: trabajo [%d] no encontrado o ya finalizó\n", target_id);
             *UltimoEstado = 1;
         }
         return 1;
     }
-    
-    return 0; //Se retona indicando que no era un BuiltIn
+
+    //Indica que no era un BuiltIn
+    return 0; 
     
 }

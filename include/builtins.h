@@ -6,6 +6,7 @@ del historial)
 #ifndef builtins_h
 #define builtins_h
 
+//Revisar si el comando es un BuiltIn
 int RevisarBuiltIn(char **args, int *UltimoEstado);
 
-#endif // builtins_h
+#endif
