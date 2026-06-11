@@ -14,4 +14,7 @@ int launch_external_command(char **args, int in_background);
 //Funcionalidad de pipes
 void ejecutar_pipe(char **args_izq, char **args_der);
 
+//Revisa si en los argumentos viene un '>' para redirigir
+void redireccion(char **args);
+
 #endif

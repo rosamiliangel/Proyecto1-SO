@@ -13,6 +13,18 @@ detección de operadores y pipes)
 #define OP_AND 2
 #define OP_OR 3
 
+//Remover comillas de una cadena (si las hay)
+void remover_comillas(char *args){
+    if(args == NULL){return;}
+    size_t len = strlen(args);
+
+    // Si el argumento empieza y termina con comillas, las eliminamos
+    if (len >= 2 && args[0] == '"' && args[len - 1] == '"') {
+        memmove(args, args + 1, len - 2); // Mover la cadena para eliminar la primera comilla
+        args[len - 2] = '\0'; // Agregar el terminador de cadena
+    }
+}
+
 int parse_line(char *line, char **args, int *in_background) {
     int i = 0;
     int operador_detectado = OP_NINGUNO; // Ninguno por defecto
@@ -40,6 +52,7 @@ int parse_line(char *line, char **args, int *in_background) {
 
         // Si la parte de la cadena evaluada no es operador se almacena en args
         args[i] = token;
+        remover_comillas(args[i]);
         i++;
 
         // Se continua cortando la cadena
