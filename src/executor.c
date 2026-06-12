@@ -2,6 +2,7 @@
 executor.c / executor.h: Interacción con el Kernel (resolución de la variable $PATH,
 llamadas a fork(), execvp(), waitpid() y redirección de descriptores)
 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,8 +13,9 @@ llamadas a fork(), execvp(), waitpid() y redirección de descriptores)
 #include <fcntl.h>
 #include "../include/jobs.h"
 
+//Buscar binarios
 int search_in_path(const char *cmd, char *full_path) {
-    //Complementario. return 1 si encunetra el comando, return 0 si no lo encuentra
+    
     if (cmd[0] == '/' || cmd[0] == '.') {
         // Si el comando ya es una ruta absoluta o relativa, verificamos
         if (access(cmd, X_OK) == 0) {strcpy(full_path, cmd); return 1;}
@@ -22,12 +24,9 @@ int search_in_path(const char *cmd, char *full_path) {
 
     //Obtener la variable de entorno PATH
     char *path_env = getenv("PATH");
-    //El enunciado dice que de manera implicita el shell debe tener cargado como valor por
-    //defecto las rutas normales y estandares de Linux
-    //No puede ser Null, return -1 (No puede ser esto, hay que poner el estandar)
-    if (path_env == NULL) {return -1;}
+    if (path_env == NULL) {return -1;} //Si el path es null retornar
 
-    //Clonamos la cadena de PATH para no modificar la original con strtok
+    //Clonar el PATH
     char path_local[1024];
     strncpy(path_local, path_env, sizeof(path_local) - 1);
 
@@ -42,19 +41,19 @@ int search_in_path(const char *cmd, char *full_path) {
         snprintf(ruta_alterna, sizeof(ruta_alterna), "%s/%s", directory, cmd);
         //Comprobar si el comando existe y permisos de ejecución
         if (access(ruta_alterna, X_OK) == 0) {
-            //Si lo encontramos, copiamos la ruta completa al buffer full_path
+            //Copiar la ruta completa al buffer full_path
             strcpy(full_path, ruta_alterna);
             return 1;
         }
         //Siguiente directorio
-        directory = strtok_r(NULL, ":", &separador); //Falta provar si evita un ciclo infinito o arruina el codigo (:)
+        directory = strtok_r(NULL, ":", &separador);
     }
 
-    //Si ya recorrimos todo el PATH y no encontramos el comando, fin.
+    //Retornar si no se encontro el comando
     return 0;
 }
 
-// Revisa si en los argumentos viene un '>' para redirigir
+// Revisar si en los argumentos viene un '>' para redirigir
 void redireccion(char **args) {
     for (int i = 0; args[i] != NULL; i++) {
         if (strcmp(args[i], ">") == 0) {
@@ -72,22 +71,21 @@ void redireccion(char **args) {
             dup2(fd, STDOUT_FILENO);
             close(fd); // Cerramos el descriptor original
 
-            // Limpiamos el '>' y el nombre del archivo de los argumentos para que execv no intente leerlos de forma literal
+            // Limpiar el '>' y el nombre del archivo para que execv no intente leerlos
             args[i] = NULL;
             break; 
         }
     }
 }
 
-//Cambio de void a int en launch_external_command() para poder capturar valor en main
+//Ejecutar comando
 int launch_external_command(char **args, int in_background) {
     char ruta_comando[1024];
 
     //Verificar si el comando existe en el PATH
-    if (!search_in_path(args[0], ruta_comando)) {
-        return -1; //Cambio ahora que es tipo int
+    if (!search_in_path(args[0], ruta_comando)) {return -1;
     } 
-    // Una vez resuelta la ruta válida, procedemos a aislar la ejecución:
+    // Aislar la ejecución:
     pid_t pid = fork();
     if (pid < 0) {perror("Error al crear hilo"); return -1;} //salir si fork falla
     
@@ -98,22 +96,21 @@ int launch_external_command(char **args, int in_background) {
 
         // Redirección de salida si es necesario
         redireccion(args);
-        // execvp reemplaza por completo la imagen de memoria del proceso actual por el nuevo binario.
-        // Si tiene éxito, esta línea NUNCA retorna; el código del hijo termina ahí.
+
+        //Remplazar la imegn en memoria del proceso por el nuevo binario (execvp)
         //Proceso hijo
         if (execvp(ruta_comando, args) == -1) {
-            perror("ucvsh error de ejecucion");
-            exit(EXIT_FAILURE); // Si execvp falla (ej: comando no encontrado), forzar la muerte del hijo [cite: 34]
+            perror("ucvsh error de ejecucion"); 
+            exit(EXIT_FAILURE); //Cerrar el hijo si execvp falla
         }
     } else {
-        // Se elimino el if (pid > 0) porque a este punto pid siempre es > 0
         // ------ PROCESO PADRE ------
         if (!in_background) {
             //Antes del bloqueo
             signal(SIGINT, SIG_IGN); //Ignorar Ctrl+C en el padre mientras espera al hijo
-            // Bloqueamos temporalmente la shell cediendo el control de la terminal al hijo[cite: 35, 36].
+            // Bloqueamos y ceder el control de la terminal al hijo
             int status;
-            // waitpid detiene al padre de forma segura hasta que el PID del hijo específico notifique su estado[cite: 36].
+            // Detener al padre de forma segura hasta que el PID del hijo específico notifique su estado
             waitpid(pid, &status, 0);
 
             // Restaurar el comportamiento por defecto de Ctrl+C en el padre
@@ -130,11 +127,11 @@ int launch_external_command(char **args, int in_background) {
             printf("[%d] %d lanzado en segundo plano\n", job_count, pid);
             return 0;
         }
-    } // Se elimino el perror, solo hay 3 casos posibles de fork y el error es el primero
+    }
     return -1;
 }
 
-//Ejecuta dos comandos interconectados por una tubería (cmd1 | cmd2)
+//Ejecuta dos comandos interconectados por una tubería
 void ejecutar_pipe(char **args_izq, char **args_der) {
     int fd[2];
     pid_t pid1, pid2;
@@ -153,10 +150,10 @@ void ejecutar_pipe(char **args_izq, char **args_der) {
         
         //El hijo izquierdo no lee del tubo, cierra lectura
         close(fd[0]);
-        // Cerramos el descriptor original ya duplicado
+        // Cerrar el descriptor original ya duplicado
         close(fd[1]);
 
-        // Buscamos la ruta ejecutable
+        // Buscar la ruta ejecutable
         char ruta[1024];
         if (search_in_path(args_izq[0], ruta)) {
             execv(ruta, args_izq);
@@ -175,8 +172,7 @@ void ejecutar_pipe(char **args_izq, char **args_der) {
         close(fd[1]);
         close(fd[0]);
 
-        // Redirección de salida si es necesario
-        redireccion(args_der);
+        redireccion(args_der); // Redirección de salida
 
         char ruta[1024];
         if (search_in_path(args_der[0], ruta)) {
@@ -191,7 +187,7 @@ void ejecutar_pipe(char **args_izq, char **args_der) {
     close(fd[0]);
     close(fd[1]);
 
-    // Esperamos de forma síncrona a que ambos hijos terminen su labor
+    // Esperamos síncronamente que ambos hijos terminen
     int status;
     waitpid(pid1, &status, 0);
     waitpid(pid2, &status, 0);

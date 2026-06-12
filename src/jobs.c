@@ -4,12 +4,9 @@ listar procesos asíncronos en segundo plano
 */
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <unistd.h> 
 #include <sys/types.h> 
-#include <sys/wait.h> 
-#include <termios.h>
+#include <sys/wait.h>
 #include "../include/jobs.h"
 
 #define MAX_LINE_LEN 1024
@@ -19,6 +16,7 @@ listar procesos asíncronos en segundo plano
 Job job_table[100];
 int job_count = 0;
 
+//Agregar trabajo
 void add_job(pid_t pid, const char* com) {
     
     //Evitar desbordamiento de memoria
@@ -31,13 +29,14 @@ void add_job(pid_t pid, const char* com) {
         //copiar el comando de forma segura
         strncpy(job_table[job_count].command, com, sizeof(job_table[job_count].command) -1);
 
-        //Estado inicial por defecto
+        //Estado por defecto
         strcpy(job_table[job_count].status, "Running");
 
         job_count++;
     }
 }
 
+//Limpiar procesos zombies
 void check_jobs() {
     int status;
     for (int i = 0; i < job_count; i++) {
@@ -55,9 +54,10 @@ void check_jobs() {
     }
 }
 
+//Imprimir trabajos
 void list_jobs() {
     for (int i = 0; i < job_count; i++) {
-        // Imprimir el ID, PID, comando y estado de cada job
+        // Imprimir el ID, PID, comando y estado de los job
         printf("[%d] PID: %d - %s - %s\n", job_table[i].id, job_table[i].pid, job_table[i].command, job_table[i].status);
     }
 }

@@ -3,19 +3,11 @@ history.c / history.h: Configuración del modo no canónico (raw mode) de la ter
 lectura carácter por carácter y navegación del historial.
 */
 
-//Incluir todas las librerias mientras se implementa la logica
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h> 
-#include <sys/types.h> 
-#include <sys/wait.h> 
+#include <unistd.h>
 #include <termios.h>
-#include <signal.h>
-#include "../include/parser.h"
-#include "../include/jobs.h"
-#include "../include/builtins.h"
-#include "../include/executor.h"
 #include "../include/history.h"
 
 #define MaxComandosHistorial 100
@@ -25,10 +17,10 @@ lectura carácter por carácter y navegación del historial.
 struct termios EstadoOriginal;
 
 //Variables globales
-char HistorialMem[MaxComandosHistorial][MaxTamanoLinea]; // Almacenar historial en memoria
-int TotalHistorial = 0;                               // Contador de comandos almacenados
-int PosicionCursor = 0;                               // Posición del cursor al usar flechas
-char RutaHistorial[1024];                             // Ruta de .ucvsh_history
+char HistorialMem[MaxComandosHistorial][MaxTamanoLinea];    // Almacenar historial en memoria
+int TotalHistorial = 0;                                     // Contador de comandos almacenados
+int PosicionCursor = 0;                                     // Posición del cursor al usar flechas
+char RutaHistorial[1024];                                   // Ruta de .ucvsh_history
 
 //Activa el modo Raw en la shell
 void ActivarModoRaw() {
@@ -151,7 +143,6 @@ void Historial(){
                 LineaTemp[strcspn(LineaTemp, "\n")] = '\0';
                 //Copiar conteniddo de LineaTemp a HistorialMem
                 strcpy(HistorialMem[TotalHistorial], LineaTemp);
-                //Incrementar contador
                 TotalHistorial++;
             }
             //Cerrar archivo
@@ -169,7 +160,7 @@ void AgregarComando(const char *buffer) {
         strcpy(HistorialMem[TotalHistorial], buffer); 
         TotalHistorial++;
     } else {
-        // Si HistorialMem se llena sedesplazan los comando hacia arriba perdiendo el primero
+        // Si HistorialMem se llena se desplazan los comando hacia arriba perdiendo el primero
         for(int i = 1; i < MaxComandosHistorial; i++){strcpy(HistorialMem[i-1], HistorialMem[i]);}
         strcpy(HistorialMem[MaxComandosHistorial-1], buffer);
     }

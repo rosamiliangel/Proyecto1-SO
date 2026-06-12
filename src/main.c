@@ -1,10 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h> 
-#include <sys/types.h> 
-#include <sys/wait.h> 
-#include <termios.h>
 #include <signal.h>
 #include "../include/parser.h"
 #include "../include/jobs.h"
@@ -13,30 +9,24 @@
 #include "../include/history.h"
 
 
-#define MAX_LINE_LEN 1024  // Longitud máxima de una línea de comandos leída del usuario [cite: 9]
-#define MAX_ARGS 64
+#define MAX_LINE_LEN 1024  // Longitud máxima de la entrada
+#define MAX_ARGS 64        // Máximo número de argumentos
 
-//Colocados provisionalmente solo para evitar problemas con parser.c
+//Variables para operadores
 #define OP_NINGUNO 0
 #define OP_SECUENCIAL 1
 #define OP_AND 2
 #define OP_OR 3
 
 void signal_handler(int sig) {
-    // Manejar señales como SIGINT (Ctrl+C) para no cerrar la shell
-    if (sig == SIGINT) {
-        printf("\nucvsh> ");
-        fflush(stdout);
-    }
+    // Manejar SIGINT (Ctrl+C) para no cerrar la shell
+    if (sig == SIGINT) {printf("\nucvsh> "); fflush(stdout);}
     // Manejar SIGTSTP (Ctrl+Z) para suspender el proceso en primer plano
-    if (sig == SIGTSTP) {
-        printf("\nucvsh> ");
-        fflush(stdout);
-    }
+    if (sig == SIGTSTP) {printf("\nucvsh> "); fflush(stdout);}
 }
 
 int main() {
-    // Configurar el manejador de señales para SIGINT
+    // Manejador de señales para SIGINT
     signal(SIGINT, signal_handler);
     signal(SIGTSTP, signal_handler);
 
@@ -46,9 +36,9 @@ int main() {
     // Cargar .ucvshHistorial a HistorialMem (memoria)
     Historial();
 
-    //Ciclo REPL (Read-Evaluate-Print-Loop)
+    //Ciclo REPL
     while(1) {
-        //Limpieza de zombies
+        //Limpiar procesos zombies
         check_jobs();
 
         //Variables
@@ -59,23 +49,11 @@ int main() {
         //Prompt inicial y limpieza del buffer para asegurar visibilidad del prompt
         printf("ucvsh> ");
         fflush(stdout);
-        /*
-        //Anterior lectura de la entrada
 
-        if (fgets(linea, sizeof(linea), stdin) == NULL) {break;}
-
-        //Limpiar salto de linea de fgets
-        linea[strcspn(linea, "\n")] = '\0';
-
-        //Caso de cadena vacia
-        if(strlen(linea) == 0){continue;}
-        */
-
-        //Lectura con historial
-        //Si retorna 0 la entrada es vacia (\n)
+        //Lectura con historial, si retorna 0 la entrada es vacia (\n)
         if (LeerLinea(linea, sizeof(linea)) == 0) {continue;}
 
-        //Se agrego strstr(linea, "||") == NULL para que en revisar operadores || no pase por |
+        //Revisar por pipes
         if (strchr(linea, '|') != NULL && strstr(linea, "||") == NULL) {
             // Si la línea tiene un pipe, extraemos los comandos izquierdo y derecho
             char *args_izq[MAX_ARGS];
@@ -90,16 +68,13 @@ int main() {
                 int in_background_izq = 0;
                 int in_background_der = 0;
 
-                // Parseamos cada trozo de manera independiente usando el parse_line
+                // Parsear cada trozo individualtemente
                 parse_line(parte_izq, args_izq, &in_background_izq);
                 parse_line(parte_der, args_der, &in_background_der);
                 
-                if (args_izq[0] != NULL && args_der[0] != NULL) {
-                    // Invocamos a la función de tuberías que se agrego
-                    ejecutar_pipe(args_izq, args_der);
-                }
+                if (args_izq[0] != NULL && args_der[0] != NULL) {ejecutar_pipe(args_izq, args_der);}
             }
-            // Saltamos el resto del bucle para volver a pedir otro prompt ucvsh>
+            // Saltar el resto del bucle para volver a ucvsh>
             continue; 
         }
 
@@ -109,14 +84,12 @@ int main() {
 
             //Almacenar operador y actualizar PunteroLinea
             operador_detectado = parse_line(PunteroLinea, args, &in_background);
-            PunteroLinea = NULL; //Fuerza a strtok de parse_line a usar el resto de la cadena
+            PunteroLinea = NULL; //Fuerza a strtok_r de parse_line a usar el resto de la cadena
 
             if(args[0] == NULL) {break;} //Caso de operador sin comandos
 
-            //Revisar BultIn
+            //Revisar BultIn, si no es BuiltIn se ejecuta
             if (RevisarBuiltIn(args, &UltimoEstado) == 0){
-                //Como el comando no era BuiltIn se ejecuta
-                //Se cambio launch de void a int en executor para capturar el valor
                 UltimoEstado = launch_external_command(args, in_background);
             }
             
@@ -130,13 +103,7 @@ int main() {
             // Operador ||. Se ejecuta el siguiente comando si el anterior retorno 1)
             if (operador_detectado == OP_OR && UltimoEstado == 0) {break;}
 
-        }
-
-        //int background_flag = parse_line(linea, args);
-        //if (UltimoEstado == 0) {launch_external_command(args, background_flag);}
-        
+        }   
     }
-
     return 0;
-    
 }
