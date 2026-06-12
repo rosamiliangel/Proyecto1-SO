@@ -1,6 +1,5 @@
 /*
-builtins.c / builtins.h: Funciones aisladas para los built-ins (cd, exit y lectura/escritura
-del historial)
+builtins.c / builtins.h: Funciones aisladas para los built-ins (cd, exit)
 */
 
 #include <stdio.h>
@@ -21,11 +20,15 @@ int RevisarBuiltIn(char **args, int *UltimoEstado){
 
     //Ejecuta el BultIn cd
     if (strcmp(args[0], "cd") == 0) {
-        // cd manda a home
-        if (args[1] == NULL) {chdir(getenv("HOME"));} else {if (chdir(args[1]) != 0) {perror("ucvsh: cd");}}
+        //Variable auxiliar
+        int resultado;
         
-        *UltimoEstado = 0; 
-        
+        // Si no hay argumento se va a home, si lo hay se ingresa al directorio. Se guarda el resultado
+        if (args[1] == NULL) {resultado = chdir(getenv("HOME"));} else {resultado = chdir(args[1]);}
+
+        //Revisar si cd tuvo exito. Retorna 0 en caso de exito y otro valor en caso contrario. Actualizar UltimoEstado
+        if (resultado != 0) {perror("ucvsh: cd");*UltimoEstado = 1;} else {*UltimoEstado = 0;}
+
         return 1;
     }
 
